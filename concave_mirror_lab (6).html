@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concave Mirror Lab</title>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080c10;--surface:#0e1318;--surface2:#141b22;
+  --border:#1e2830;--border2:#263040;
+  --text:#d8e8f0;--muted:#4a6070;
+  --accent:#00c8ff;--accent2:#ff6b35;
+  --green:#00e59b;--red:#ff4466;--yellow:#ffd166;
+  --mono:'Space Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(0,200,255,0.03)1px,transparent 1px),
+  linear-gradient(90deg,rgba(0,200,255,0.03)1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;z-index:0;}
+.app{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:20px 16px 60px;}
+
+/* header */
+.header-top{display:flex;align-items:baseline;gap:10px;margin-bottom:3px;}
+h1{font-family:var(--mono);font-size:19px;color:var(--accent);}
+.badge{font-family:var(--mono);font-size:10px;background:rgba(0,200,255,0.1);border:1px solid rgba(0,200,255,0.3);color:var(--accent);padding:2px 8px;border-radius:3px;}
+header p{font-size:12px;color:var(--muted);margin-bottom:18px;}
+
+/* tabs */
+.tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;width:fit-content;}
+.tab{font-family:var(--mono);font-size:11px;padding:7px 14px;border-radius:7px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+.tab.active{background:var(--accent);color:#000;font-weight:700;}
+.panel{display:none;}.panel.active{display:block;}
+
+.fbar{display:flex;gap:14px;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;margin-bottom:16px;font-family:var(--mono);font-size:11px;color:var(--muted);}
+.fbar span{color:var(--accent);}
+
+/* TEXT TAB */
+.text-row{display:flex;gap:10px;margin-bottom:18px;align-items:center;}
+.letter-input{font-family:var(--mono);font-size:30px;width:76px;height:60px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;color:var(--accent);text-align:center;outline:none;padding:0 10px;text-transform:uppercase;}
+.letter-input:focus{border-color:var(--accent);}
+.hint{font-size:12px;color:var(--muted);line-height:1.7;}
+.cases-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.case-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.case-hdr{padding:9px 13px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.case-title{font-family:var(--mono);font-size:11px;color:var(--accent);}
+.case-body{padding:13px;}
+.mirror-disp{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:10px;}
+.ch-lbl{font-size:10px;color:var(--muted);text-align:center;margin-bottom:4px;font-family:var(--mono);}
+.case-info{display:flex;flex-wrap:wrap;gap:5px;}
+.tag{font-family:var(--mono);font-size:10px;padding:3px 7px;border-radius:4px;border:1px solid;}
+.tag.real{background:rgba(255,107,53,.1);border-color:rgba(255,107,53,.3);color:var(--accent2);}
+.tag.virtual{background:rgba(255,209,102,.1);border-color:rgba(255,209,102,.3);color:var(--yellow);}
+.tag.inverted{background:rgba(255,68,102,.1);border-color:rgba(255,68,102,.3);color:var(--red);}
+.tag.erect{background:rgba(0,229,155,.1);border-color:rgba(0,229,155,.3);color:var(--green);}
+.tag.dim{background:rgba(74,96,112,.15);border-color:var(--border2);color:var(--muted);}
+.tag.mag{background:rgba(0,200,255,.1);border-color:rgba(0,200,255,.3);color:var(--accent);}
+.tag.same{background:rgba(74,96,112,.15);border-color:var(--border2);color:var(--muted);}
+.pos-desc{font-size:11px;color:var(--muted);margin-bottom:12px;padding:7px 11px;background:var(--surface2);border-radius:6px;border-left:2px solid var(--border2);line-height:1.6;}
+.pos-desc strong{color:var(--text);}
+
+/* RAY DIAGRAM */
+.ray-section{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:16px;}
+.ray-header{padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
+.ray-title{font-family:var(--mono);font-size:11px;color:var(--accent);}
+.ray-hint{font-family:var(--mono);font-size:10px;color:var(--muted);}
+#rayCanvas{width:100%;display:block;cursor:grab;}
+#rayCanvas:active{cursor:grabbing;}
+.ray-legend{display:flex;gap:16px;padding:8px 16px;border-top:1px solid var(--border);flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--muted);}
+.leg-line{width:24px;height:2px;border-radius:1px;}
+
+/* PHYSICS STRIP */
+.phy-strip{display:flex;gap:8px;margin-bottom:16px;}
+.phy-card{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center;}
+.phy-val{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--accent);}
+.phy-val.real-c{color:var(--accent2);}
+.phy-val.virt-c{color:var(--yellow);}
+.phy-key{font-size:10px;color:var(--muted);margin-top:3px;font-family:var(--mono);}
+
+/* sliders */
+.ctrl-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;}
+.ctrl-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.ctrl-item .top{display:flex;justify-content:space-between;margin-bottom:6px;}
+.ctrl-name{font-family:var(--mono);font-size:10px;color:var(--muted);}
+.ctrl-val{font-family:var(--mono);font-size:10px;color:var(--accent);}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border2);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;}
+
+.explain-strip{background:var(--surface2);border:1px solid var(--border);border-left:2px solid var(--accent);border-radius:8px;padding:9px 13px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:16px;min-height:36px;}
+.explain-strip strong{color:var(--text);}
+
+/* WEBCAM */
+.cam-top{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.cam-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.cam-card-hdr{padding:7px 13px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;}
+canvas.vcv{width:100%;display:block;background:#000;aspect-ratio:4/3;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;}
+.live-dot.on{background:var(--green);animation:blink 1.2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.case-selector{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.case-btn{font-family:var(--mono);font-size:10px;padding:7px 12px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;white-space:nowrap;}
+.case-btn:hover{border-color:var(--accent);color:var(--accent);}
+.case-btn.sel{background:rgba(0,200,255,.12);border-color:var(--accent);color:var(--accent);}
+.source-toggle{display:flex;gap:6px;margin-bottom:14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px;}
+.src-btn{flex:1;font-family:var(--mono);font-size:11px;padding:8px;border-radius:6px;border:none;background:transparent;color:var(--muted);cursor:pointer;transition:all .2s;}
+.src-btn.active{background:var(--accent);color:#000;font-weight:700;}
+.connect-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px;display:none;}
+.connect-panel.show{display:block;}
+.room-row{display:flex;gap:8px;margin-bottom:10px;}
+.room-input{flex:1;font-family:var(--mono);font-size:18px;letter-spacing:6px;padding:10px 14px;background:#080c10;border:1px solid var(--border2);border-radius:8px;color:var(--accent);outline:none;text-align:center;}
+.room-input:focus{border-color:var(--accent);}
+.conn-btn{font-family:var(--mono);font-size:11px;padding:10px 16px;background:var(--accent);color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700;white-space:nowrap;}
+.conn-btn:hover{background:#33d4ff;}
+.conn-btn.disc{background:var(--red);color:#fff;}
+.peer-status{font-family:var(--mono);font-size:11px;padding:8px 12px;border-radius:6px;background:#080c10;border:1px solid var(--border);color:var(--muted);text-align:center;}
+.peer-status.live{color:var(--green);border-color:rgba(0,229,155,.3);}
+.peer-status.err{color:var(--red);border-color:rgba(255,68,102,.3);}
+.start-btn{width:100%;padding:11px;font-family:var(--mono);font-size:12px;font-weight:700;background:var(--accent);color:#000;border:none;border-radius:8px;cursor:pointer;margin-bottom:7px;transition:all .2s;}
+.start-btn:hover{background:#33d4ff;}
+.start-btn.stop{background:var(--red);color:#fff;}
+#camStatus{font-size:11px;color:var(--muted);text-align:center;padding:3px;font-family:var(--mono);}
+
+@media(max-width:600px){
+  .cases-grid,.cam-top,.ctrl-grid{grid-template-columns:1fr;}
+  .phy-strip{flex-wrap:wrap;}
+  .phy-card{min-width:calc(50% - 4px);}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="header-top">
+      <h1>CONCAVE MIRROR LAB</h1>
+      <span class="badge">PHYSICS</span>
+    </div>
+    <p>Interactive ray diagram · drag the object · webcam mirror simulation · all 4 cases</p>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('text')">TEXT / LETTER</button>
+    <button class="tab" onclick="switchTab('webcam')">WEBCAM</button>
+  </div>
+
+  <!-- ======== TEXT TAB ======== -->
+  <div class="panel active" id="panel-text">
+    <div class="fbar">
+      1/f = 1/v + 1/u &nbsp;|&nbsp; m = −v/u &nbsp;|&nbsp;
+      <span>m &lt; 0 → real, inverted</span> &nbsp;|&nbsp;
+      <span>m &gt; 0 → virtual, erect</span>
+    </div>
+
+    <!-- ── LIVE RAY DIAGRAM ── -->
+    <div class="ray-section">
+      <div class="ray-header">
+        <span class="ray-title">LIVE RAY DIAGRAM</span>
+        <span class="ray-hint">drag the green arrow to move the object · or use sliders below</span>
+      </div>
+      <canvas id="rayCanvas" height="220"></canvas>
+      <div class="ray-legend">
+        <div class="leg-item"><div class="leg-line" style="background:#ffd166"></div>Parallel ray</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ff6b9d"></div>Centre ray (through C)</div>
+        <div class="leg-item"><div class="leg-line" style="background:#88ddff"></div>Focal ray (through F)</div>
+        <div class="leg-item"><div class="leg-line" style="background:#00e59b"></div>Object</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ff6b35"></div>Real image</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ffd166;border-top:2px dashed #ffd166;height:0"></div>Virtual image</div>
+      </div>
+    </div>
+
+    <!-- ── PHYSICS GAUGES ── -->
+    <div class="phy-strip">
+      <div class="phy-card"><div class="phy-val" id="pU">--</div><div class="phy-key">u (object dist)</div></div>
+      <div class="phy-card"><div class="phy-val" id="pV">--</div><div class="phy-key">v (image dist)</div></div>
+      <div class="phy-card"><div class="phy-val" id="pM">--</div><div class="phy-key">m (magnification)</div></div>
+      <div class="phy-card"><div class="phy-val" id="pF">--</div><div class="phy-key">f (focal length)</div></div>
+    </div>
+
+    <!-- ── EXPLAIN ── -->
+    <div class="explain-strip" id="explainStrip">Use sliders or drag the object arrow to explore all 4 mirror cases.</div>
+
+    <!-- ── SLIDERS ── -->
+    <div class="ctrl-panel">
+      <div class="ctrl-grid">
+        <div class="ctrl-item">
+          <div class="top"><span class="ctrl-name">FOCAL LENGTH f (cm)</span><span class="ctrl-val" id="sv_f">20</span></div>
+          <input type="range" id="sl_f" min="5" max="60" value="20" step="1" oninput="onSliders()">
+        </div>
+        <div class="ctrl-item">
+          <div class="top"><span class="ctrl-name">OBJECT DISTANCE u (cm)</span><span class="ctrl-val" id="sv_u">50</span></div>
+          <input type="range" id="sl_u" min="1" max="120" value="50" step="1" oninput="onSliders()">
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LETTER CASES ── -->
+    <div class="text-row">
+      <div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px;font-family:var(--mono)">TYPE LETTER</div>
+        <input class="letter-input" id="letterInput" maxlength="1" value="L" oninput="renderCases()">
+      </div>
+      <div class="hint">
+        Type any letter. See how a concave mirror renders it<br>
+        across all 4 standard cases.<br>
+        <span style="color:var(--accent2)">Orange</span> = real &nbsp;|&nbsp; <span style="color:var(--yellow)">Yellow</span> = virtual
+      </div>
+    </div>
+    <div class="cases-grid" id="casesGrid"></div>
+  </div>
+
+  <!-- ======== WEBCAM TAB ======== -->
+  <div class="panel" id="panel-webcam">
+    <div class="fbar">
+      1/f = 1/v + 1/u &nbsp;|&nbsp; m = −v/u &nbsp;|&nbsp;
+      <span>image scaled by |m|, flipped by sign(m)</span> &nbsp;|&nbsp;
+      webcam lateral inversion corrected first
+    </div>
+
+    <!-- SOURCE TOGGLE -->
+    <div class="source-toggle">
+      <button class="src-btn active" id="srcLocal" onclick="setSource('local')">📷 MY PHONE CAMERA</button>
+      <button class="src-btn" id="srcRemote" onclick="setSource('remote')">💻 LAPTOP WEBCAM (remote)</button>
+    </div>
+
+    <!-- REMOTE CONNECT PANEL -->
+    <div class="connect-panel" id="connectPanel">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:10px;">
+        Open <strong style="color:var(--accent)">broadcaster.html</strong> on your laptop → get the 6-digit Room ID → enter below
+      </div>
+      <div class="room-row">
+        <input class="room-input" id="roomInput" maxlength="6" placeholder="000000" type="number">
+        <button class="conn-btn" id="connBtn" onclick="connectToLaptop()">CONNECT</button>
+      </div>
+      <div class="peer-status" id="peerStatus">Enter Room ID from your laptop broadcaster</div>
+    </div>
+
+    <!-- case preset buttons -->
+    <div class="case-selector" id="camCaseBtns">
+      <button class="case-btn sel" onclick="setCamCase(0)">u &gt; 2f &nbsp;(beyond C)</button>
+      <button class="case-btn"    onclick="setCamCase(1)">u = 2f &nbsp;(at C)</button>
+      <button class="case-btn"    onclick="setCamCase(2)">f &lt; u &lt; 2f &nbsp;(C to F)</button>
+      <button class="case-btn"    onclick="setCamCase(3)">u &lt; f &nbsp;(inside F)</button>
+    </div>
+
+    <div class="cam-top">
+      <div class="cam-card">
+        <div class="cam-card-hdr">
+          <span><span class="live-dot" id="liveDot"></span>OBJECT (corrected)</span>
+          <span style="font-size:9px;color:var(--muted)">webcam lateral inversion removed</span>
+        </div>
+        <canvas id="rawCv" class="vcv"></canvas>
+      </div>
+      <div class="cam-card">
+        <div class="cam-card-hdr">
+          <span>CONCAVE MIRROR IMAGE</span>
+          <span id="camCaseLabel" style="font-size:9px;color:var(--accent2)">—</span>
+        </div>
+        <canvas id="mirCv" class="vcv"></canvas>
+      </div>
+    </div>
+
+    <div class="phy-strip">
+      <div class="phy-card"><div class="phy-val" id="cpU">--</div><div class="phy-key">u (cm)</div></div>
+      <div class="phy-card"><div class="phy-val" id="cpV">--</div><div class="phy-key">v (cm)</div></div>
+      <div class="phy-card"><div class="phy-val" id="cpM">--</div><div class="phy-key">m</div></div>
+      <div class="phy-card"><div class="phy-val" id="cpF">--</div><div class="phy-key">f (cm)</div></div>
+    </div>
+
+    <div class="explain-strip" id="camExplain">Adjust sliders and start the camera to see the live mirror effect.</div>
+
+    <div class="ctrl-panel">
+      <div class="ctrl-grid">
+        <div class="ctrl-item">
+          <div class="top"><span class="ctrl-name">FOCAL LENGTH f (cm)</span><span class="ctrl-val" id="csv_f">20</span></div>
+          <input type="range" id="csl_f" min="5" max="60" value="20" step="1" oninput="onCamSliders()">
+        </div>
+        <div class="ctrl-item">
+          <div class="top"><span class="ctrl-name">OBJECT DISTANCE u (cm)</span><span class="ctrl-val" id="csv_u">50</span></div>
+          <input type="range" id="csl_u" min="1" max="120" value="50" step="1" oninput="onCamSliders()">
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE RAY DIAGRAM for webcam tab -->
+    <div class="ray-section">
+      <div class="ray-header">
+        <span class="ray-title">LIVE RAY DIAGRAM</span>
+        <span class="ray-hint">updates with sliders · drag the object arrow</span>
+      </div>
+      <canvas id="camRayCanvas" height="220" style="width:100%;display:block;cursor:grab;background:#080c10;"></canvas>
+      <div class="ray-legend">
+        <div class="leg-item"><div class="leg-line" style="background:#ffd166"></div>Parallel ray</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ff6b9d"></div>Centre ray</div>
+        <div class="leg-item"><div class="leg-line" style="background:#88ddff"></div>Focal ray</div>
+        <div class="leg-item"><div class="leg-line" style="background:#00e59b"></div>Object</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ff6b35"></div>Real image</div>
+        <div class="leg-item"><div class="leg-line" style="background:#ffd166;border-top:2px dashed #ffd166;height:0"></div>Virtual</div>
+      </div>
+    </div>
+
+    <button class="start-btn" id="camBtn" onclick="toggleCam()">START CAMERA</button>
+    <div id="camStatus">Download &amp; open in Chrome / Firefox for camera access</div>
+  </div>
+</div>
+
+<video id="vid" autoplay playsinline muted style="display:none"></video>
+
+<script>
+// ════════════════════════════════════════════
+//  TAB
+// ════════════════════════════════════════════
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',(i===0&&t==='text')||(i===1&&t==='webcam')));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+  if(t==='text')drawRay();
+}
+
+// ════════════════════════════════════════════
+//  MIRROR FORMULA
+// ════════════════════════════════════════════
+function mirrorCalc(f,u){
+  const d=u-f;
+  if(Math.abs(d)<0.01)return null;
+  const v=(f*u)/d, m=-(v/u);
+  const af=Math.abs(m);
+  return{v,m,
+    type:v>0?'REAL':'VIRTUAL',
+    nature:m<0?'INVERTED':'ERECT',
+    stag:af<0.97?'DIMINISHED':af>1.03?'MAGNIFIED':'SAME SIZE'};
+}
+
+function explainText(f,u,ph){
+  if(!ph) return `u(${u}) = f(${f}) — object at focal point, image at <strong>infinity</strong>.`;
+  const twoF=2*f;
+  if(u>twoF) return `u(${u}) &gt; 2f(${twoF}): <strong>real · inverted · diminished</strong> — image between F and C. m=${ph.m.toFixed(3)}`;
+  if(Math.abs(u-twoF)<1) return `u(${u}) = 2f(${twoF}): <strong>real · inverted · same size</strong> — image at C. m=${ph.m.toFixed(3)}`;
+  if(u>f) return `f(${f}) &lt; u(${u}) &lt; 2f(${twoF}): <strong>real · inverted · magnified</strong> — image beyond C. m=${ph.m.toFixed(3)}`;
+  return `u(${u}) &lt; f(${f}): <strong>virtual · erect · magnified</strong> — image behind mirror. m=${ph.m.toFixed(3)}`;
+}
+
+// ════════════════════════════════════════════
+//  LIVE RAY DIAGRAM  (draggable)
+// ════════════════════════════════════════════
+const rc = document.getElementById('rayCanvas');
+const rctxD = rc.getContext('2d');
+
+// State (in "physics cm" space — we map to canvas pixels)
+let F_cm = 20;   // focal length
+let U_cm = 50;   // object distance
+
+let dragging = false;
+let dragOffX = 0;
+
+// Layout constants (canvas pixels):
+// Mirror is always at x = MIRX, principal axis at y = CY
+// We scale so that 1 cm = SCALE pixels, measured from mirror leftward for u
+const MIRX_FRAC = 0.72; // mirror at 72% from left
+let CW, CH, MIRX, CY, SCALE;
+
+function layoutRay(){
+  CW = rc.parentElement.clientWidth || 800;
+  CH = 220;
+  rc.width = CW; rc.height = CH;
+  MIRX = Math.round(CW * MIRX_FRAC);
+  CY   = Math.round(CH * 0.45);
+  // Scale: 2f should fit comfortably in left portion
+  // Left usable space = MIRX - 30px; we want 3f to fit there typically
+  SCALE = Math.min((MIRX - 40) / (3 * F_cm + 10), 14);
+}
+
+function cmToX(u_cm){ return MIRX - u_cm * SCALE; }   // object/image position → canvas x
+function xToCm(x){ return (MIRX - x) / SCALE; }        // canvas x → cm
+
+function drawRay(){
+  layoutRay();
+  const ctx = rctxD;
+  ctx.clearRect(0,0,CW,CH);
+
+  const f = F_cm, u = U_cm;
+  const objX = cmToX(u);
+  const objH = Math.min(60, CH * 0.28); // object height in pixels (always positive, arrow points up)
+
+  // ── background ──
+  ctx.fillStyle='#080c10';
+  ctx.fillRect(0,0,CW,CH);
+
+  // ── principal axis ──
+  ctx.strokeStyle='#1e2830'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,CY); ctx.lineTo(CW,CY); ctx.stroke();
+
+  // ── mirror arc (curved line at MIRX) ──
+  ctx.strokeStyle='#378ADD'; ctx.lineWidth=3;
+  ctx.beginPath();
+  const arcH = CH*0.42;
+  for(let py=-arcH; py<=arcH; py+=1){
+    const px = MIRX + (py*py)/(6*f*SCALE); // parabolic: x offset = y²/4f (scaled)
+    py===-arcH ? ctx.moveTo(px,CY+py) : ctx.lineTo(px,CY+py);
+  }
+  ctx.stroke();
+
+  // ── mirror label P ──
+  ctx.fillStyle='#378ADD'; ctx.font='11px monospace';
+  ctx.fillText('P', MIRX+6, CY-arcH+14);
+
+  // ── F and C markers ──
+  const Fx=cmToX(f), Cx=cmToX(2*f);
+  [[Fx,'F'],[Cx,'C']].forEach(([x,lbl])=>{
+    ctx.beginPath(); ctx.arc(x,CY,4,0,Math.PI*2);
+    ctx.fillStyle='#378ADD44'; ctx.fill();
+    ctx.strokeStyle='#378ADD'; ctx.lineWidth=1; ctx.stroke();
+    ctx.fillStyle='#4a6070'; ctx.font='bold 11px monospace';
+    ctx.fillText(lbl, x-4, CY+18);
+  });
+
+  // ── tick marks on axis ──
+  ctx.strokeStyle='#1e2830'; ctx.lineWidth=1;
+  for(let d=5; d<=Math.ceil(xToCm(10)); d+=5){
+    const tx=cmToX(d);
+    if(tx<5) break;
+    ctx.beginPath(); ctx.moveTo(tx,CY-4); ctx.lineTo(tx,CY+4); ctx.stroke();
+    ctx.fillStyle='#263040'; ctx.font='9px monospace';
+    ctx.fillText(d+'cm', tx-8, CY+26);
+  }
+
+  // ── object arrow (draggable) ──
+  ctx.strokeStyle='#00e59b'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(objX,CY); ctx.lineTo(objX,CY-objH); ctx.stroke();
+  // arrowhead
+  ctx.fillStyle='#00e59b';
+  ctx.beginPath(); ctx.moveTo(objX-5,CY-objH+8); ctx.lineTo(objX,CY-objH); ctx.lineTo(objX+5,CY-objH+8); ctx.fill();
+  // drag handle circle at tip
+  ctx.beginPath(); ctx.arc(objX,CY-objH,8,0,Math.PI*2);
+  ctx.strokeStyle='#00e59b'; ctx.lineWidth=1.5;
+  ctx.fillStyle='rgba(0,229,155,0.15)'; ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#00e59b'; ctx.font='10px monospace';
+  ctx.fillText('O', objX+10, CY-objH);
+
+  // ── compute image ──
+  const ph = mirrorCalc(f,u);
+
+  if(!ph){
+    // image at infinity — draw dashed horizontal rays going right
+    ctx.setLineDash([6,4]); ctx.strokeStyle='rgba(100,100,120,0.4)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(MIRX,CY-objH); ctx.lineTo(CW,CY-objH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#4a6070'; ctx.font='11px monospace'; ctx.textAlign='center';
+    ctx.fillText('image at ∞  (u = f)', CW/2, CY-objH-10);
+    ctx.textAlign='left';
+    updateGauges(f,u,null);
+    return;
+  }
+
+  const {v,m} = ph;
+  const imgX = cmToX(v);       // v>0 → real, in front of mirror (left side); v<0 → virtual (right side, behind mirror)
+  const imgH = objH * m;       // m<0 → inverted (imgH negative); m>0 → erect (positive)
+
+  const topY  = CY - objH;    // object tip y
+  const iTopY = CY + imgH;    // image tip y  (note: imgH negative when inverted → iTopY < CY)
+
+  // ─────────────────────────────────
+  //  RAY 1 — PARALLEL RAY
+  //  From object tip, parallel to axis → hits mirror → reflects through F
+  // ─────────────────────────────────
+  ctx.strokeStyle='#ffd166'; ctx.lineWidth=1.5; ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(objX, topY);
+  ctx.lineTo(MIRX, topY);             // horizontal to mirror
+  if(v>0){
+    ctx.lineTo(imgX, iTopY);          // real image: ray converges
+  } else {
+    ctx.lineTo(imgX, iTopY);          // virtual image: ray appears to diverge
+    // extend past mirror to show reflected direction
+    ctx.moveTo(MIRX, topY);
+    ctx.lineTo(MIRX + 80, topY + 80*(iTopY-topY)/(imgX-MIRX));
+  }
+  ctx.stroke();
+  if(v<0){
+    // dashed backward extension for virtual
+    ctx.setLineDash([5,4]); ctx.globalAlpha=0.45;
+    ctx.beginPath(); ctx.moveTo(MIRX,topY); ctx.lineTo(imgX,iTopY); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  }
+
+  // ─────────────────────────────────
+  //  RAY 2 — CENTRE RAY (through C = 2f)
+  //  From object tip, through C → reflects back through C
+  // ─────────────────────────────────
+  ctx.strokeStyle='#ff6b9d'; ctx.lineWidth=1.5; ctx.setLineDash([]);
+  // direction from object tip to C
+  const cx2=Cx, cy2=CY;
+  if(v>0){
+    ctx.beginPath();
+    ctx.moveTo(objX,topY);
+    ctx.lineTo(cx2,cy2);    // to centre of curvature
+    ctx.lineTo(imgX,iTopY); // reflects symmetrically
+    ctx.stroke();
+  } else {
+    ctx.beginPath();
+    ctx.moveTo(objX,topY);
+    // line from object through C, extended to mirror
+    const t_mir = (MIRX-objX)/(cx2-objX);
+    const yAtMir = topY + t_mir*(cy2-topY);
+    ctx.lineTo(MIRX, yAtMir);
+    ctx.stroke();
+    ctx.setLineDash([5,4]); ctx.globalAlpha=0.45;
+    ctx.beginPath(); ctx.moveTo(MIRX,yAtMir); ctx.lineTo(imgX,iTopY); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  }
+
+  // ─────────────────────────────────
+  //  RAY 3 — FOCAL RAY
+  //  From object tip, toward F → reflects parallel to axis
+  // ─────────────────────────────────
+  ctx.strokeStyle='#88ddff'; ctx.lineWidth=1.5; ctx.setLineDash([]);
+  {
+    // Line from object tip to Fx (focal point), find where it hits mirror (at MIRX)
+    const slope_in = (CY - topY) / (Fx - objX);
+    const yHit = topY + slope_in*(MIRX-objX);  // y at mirror surface
+    if(v>0){
+      ctx.beginPath();
+      ctx.moveTo(objX,topY);
+      ctx.lineTo(MIRX,yHit);
+      ctx.lineTo(imgX,yHit);  // reflects parallel → horizontal to image x
+      ctx.lineTo(imgX,iTopY);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(objX,topY);
+      ctx.lineTo(MIRX,yHit);
+      // After reflection, goes parallel (horizontal) to right
+      ctx.lineTo(MIRX+100,yHit);
+      ctx.stroke();
+      ctx.setLineDash([5,4]); ctx.globalAlpha=0.45;
+      ctx.beginPath(); ctx.moveTo(MIRX,yHit); ctx.lineTo(imgX,iTopY); ctx.stroke();
+      ctx.setLineDash([]); ctx.globalAlpha=1;
+    }
+  }
+
+  // ─────────────────────────────────
+  //  IMAGE ARROW
+  // ─────────────────────────────────
+  const imgCol = v>0 ? '#ff6b35' : '#ffd166';
+  ctx.strokeStyle=imgCol; ctx.lineWidth=2.5; ctx.setLineDash(v>0?[]:[6,3]);
+  ctx.beginPath(); ctx.moveTo(imgX,CY); ctx.lineTo(imgX,iTopY); ctx.stroke();
+  ctx.setLineDash([]);
+  // arrowhead
+  ctx.fillStyle=imgCol;
+  if(iTopY < CY){ // inverted = tip above axis? No — iTopY < CY means upward
+    ctx.beginPath(); ctx.moveTo(imgX-4,iTopY+7); ctx.lineTo(imgX,iTopY); ctx.lineTo(imgX+4,iTopY+7); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.moveTo(imgX-4,iTopY-7); ctx.lineTo(imgX,iTopY); ctx.lineTo(imgX+4,iTopY-7); ctx.fill();
+  }
+  ctx.fillStyle=imgCol; ctx.font='10px monospace'; ctx.setLineDash([]);
+  const imgLbl = v>0?'I (real)':'I (virtual)';
+  ctx.fillText(imgLbl, imgX>MIRX+10?imgX+6:imgX+6, iTopY);
+
+  // ─── label image distance ───
+  if(Math.abs(imgX-MIRX)>20){
+    ctx.strokeStyle='rgba(100,100,120,0.35)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(MIRX,CY+36); ctx.lineTo(imgX,CY+36); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#4a6070'; ctx.font='9px monospace'; ctx.textAlign='center';
+    ctx.fillText(`v=${Math.abs(v).toFixed(1)}cm`, (MIRX+imgX)/2, CY+30);
+    ctx.textAlign='left';
+  }
+
+  // ─── label object distance ───
+  ctx.strokeStyle='rgba(0,229,155,0.25)'; ctx.lineWidth=1; ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(objX,CY+48); ctx.lineTo(MIRX,CY+48); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#00e59b99'; ctx.font='9px monospace'; ctx.textAlign='center';
+  ctx.fillText(`u=${u.toFixed(1)}cm`, (objX+MIRX)/2, CY+44);
+  ctx.textAlign='left';
+
+  updateGauges(f,u,ph);
+}
+
+function updateGauges(f,u,ph){
+  document.getElementById('pF').textContent=f;
+  document.getElementById('pU').textContent=u.toFixed(1);
+  if(!ph){
+    document.getElementById('pV').textContent='∞';
+    document.getElementById('pM').textContent='∞';
+    document.getElementById('explainStrip').innerHTML=`u = f = ${f} cm — object at focal point. Image at <strong>infinity</strong>.`;
+    return;
+  }
+  const vEl=document.getElementById('pV'), mEl=document.getElementById('pM');
+  vEl.textContent=Math.abs(ph.v).toFixed(1);
+  vEl.className='phy-val '+(ph.v>0?'real-c':'virt-c');
+  mEl.textContent=ph.m.toFixed(3);
+  mEl.className='phy-val '+(ph.m<0?'real-c':'virt-c');
+  document.getElementById('explainStrip').innerHTML=explainText(f,u,ph);
+  // sync sliders
+  document.getElementById('sl_f').value=f;
+  document.getElementById('sl_u').value=Math.min(Math.max(Math.round(u),1),120);
+  document.getElementById('sv_f').textContent=f;
+  document.getElementById('sv_u').textContent=u.toFixed(1);
+}
+
+// ── Sliders → update diagram ──
+function onSliders(){
+  F_cm = +document.getElementById('sl_f').value;
+  U_cm = +document.getElementById('sl_u').value;
+  document.getElementById('sv_f').textContent = F_cm;
+  document.getElementById('sv_u').textContent = U_cm;
+  drawRay();
+}
+
+// ── Drag logic ──
+function getCanvasX(e){
+  const rect=rc.getBoundingClientRect();
+  const scaleX=rc.width/rect.width;
+  if(e.touches) return (e.touches[0].clientX-rect.left)*scaleX;
+  return (e.clientX-rect.left)*scaleX;
+}
+
+function isNearObject(ex){
+  return Math.abs(ex - cmToX(U_cm)) < 18;
+}
+
+rc.addEventListener('mousedown',e=>{if(isNearObject(getCanvasX(e))){dragging=true;rc.style.cursor='grabbing';}});
+rc.addEventListener('touchstart',e=>{if(isNearObject(getCanvasX(e))){dragging=true;e.preventDefault();}},{passive:false});
+
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const newX=getCanvasX(e);
+  const newU=xToCm(newX);
+  U_cm=Math.max(1, Math.min(newU, xToCm(10))); // keep in range
+  drawRay();
+});
+window.addEventListener('touchmove',e=>{
+  if(!dragging)return;
+  e.preventDefault();
+  const newX=getCanvasX(e);
+  const newU=xToCm(newX);
+  U_cm=Math.max(1, Math.min(newU, xToCm(10)));
+  drawRay();
+},{passive:false});
+
+window.addEventListener('mouseup',()=>{dragging=false;rc.style.cursor='grab';});
+window.addEventListener('touchend',()=>{dragging=false;});
+
+// cursor: show grab when near object
+rc.addEventListener('mousemove',e=>{
+  if(!dragging) rc.style.cursor=isNearObject(getCanvasX(e))?'grab':'default';
+});
+
+// ════════════════════════════════════════════
+//  TEXT CASES (letter visualiser)
+// ════════════════════════════════════════════
+const TEXT_CASES=[
+  {title:'CASE 1',pos:'u > 2f  (beyond C)',sx:-1,sy:-1,size:.58,type:'real',   nature:'inverted',stag:'dim',
+   desc:'Object beyond C. Image between F and C — real, inverted, diminished.'},
+  {title:'CASE 2',pos:'u = 2f  (at C)',    sx:-1,sy:-1,size:1.0, type:'real',   nature:'inverted',stag:'same',
+   desc:'Object at C. Image also at C — real, inverted, same size.'},
+  {title:'CASE 3',pos:'f < u < 2f',        sx:-1,sy:-1,size:1.7, type:'real',   nature:'inverted',stag:'mag',
+   desc:'Object between C and F. Image beyond C — real, inverted, magnified.'},
+  {title:'CASE 4',pos:'u < f  (inside F)', sx:1, sy:1, size:1.75,type:'virtual',nature:'erect',  stag:'mag',
+   desc:'Object inside focal length. Image behind mirror — virtual, erect, magnified.'},
+];
+
+function renderCharOnCanvas(cv,letter,sx,sy,col){
+  const W=cv.offsetWidth||68,H=cv.offsetHeight||68;
+  cv.width=W;cv.height=H;
+  const ctx=cv.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+  ctx.save();ctx.translate(W/2,H/2);ctx.scale(sx,sy);
+  ctx.font=`bold ${Math.min(W,H)*.7}px 'Space Mono',monospace`;
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillStyle=col;ctx.fillText(letter||'L',0,2);
+  ctx.restore();
+}
+
+function renderCases(){
+  const letter=document.getElementById('letterInput').value||'L';
+  const grid=document.getElementById('casesGrid');grid.innerHTML='';
+  TEXT_CASES.forEach((c,i)=>{
+    const card=document.createElement('div');card.className='case-card';
+    const hdr=document.createElement('div');hdr.className='case-hdr';
+    hdr.innerHTML=`<span class="case-title">${c.title}</span><span style="font-size:10px;color:var(--muted)">${c.pos}</span>`;
+    card.appendChild(hdr);
+    const body=document.createElement('div');body.className='case-body';
+    body.innerHTML=`<div class="pos-desc"><strong>${c.pos}</strong><br>${c.desc}</div>`;
+    const disp=document.createElement('div');disp.className='mirror-disp';
+    const ow=document.createElement('div');ow.innerHTML='<div class="ch-lbl">OBJECT</div>';
+    const ocv=document.createElement('canvas');ocv.style.cssText='width:66px;height:66px;background:#141b22;border:1px solid #263040;border-radius:8px;';
+    renderCharOnCanvas(ocv,letter,1,1,'#00e59b');ow.appendChild(ocv);disp.appendChild(ow);
+    disp.innerHTML+=`<div style="color:#1e2830;font-size:20px;margin-top:14px;">→</div>`;
+    const iw=document.createElement('div');iw.innerHTML='<div class="ch-lbl">IMAGE</div>';
+    const icv=document.createElement('canvas');
+    const sz=Math.min(Math.max(Math.round(66*c.size),40),102);
+    icv.style.cssText=`width:${sz}px;height:${sz}px;background:#141b22;border:1px solid #263040;border-radius:8px;`;
+    renderCharOnCanvas(icv,letter,c.sx,c.sy,c.type==='virtual'?'#ffd166':'#ff6b35');
+    iw.appendChild(icv);disp.appendChild(iw);body.appendChild(disp);
+    const tags=document.createElement('div');tags.className='case-info';
+    tags.innerHTML=`<span class="tag ${c.type}">${c.type.toUpperCase()}</span>`+
+      `<span class="tag ${c.nature}">${c.nature.toUpperCase()}</span>`+
+      `<span class="tag ${c.stag}">${c.stag==='dim'?'DIMINISHED':c.stag==='mag'?'MAGNIFIED':'SAME SIZE'}</span>`;
+    body.appendChild(tags);card.appendChild(body);grid.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════
+//  CAM RAY DIAGRAM  (mirrors the text-tab drawRay but reads cam sliders)
+// ════════════════════════════════════════════
+const crc = document.getElementById('camRayCanvas');
+const crcCtx = crc.getContext('2d');
+let cDragging=false;
+
+let cCW,cCH,cMIRX,cCY,cSCALE;
+function camRayLayout(){
+  cCW=crc.parentElement.clientWidth||800;
+  cCH=220;
+  crc.width=cCW; crc.height=cCH;
+  cMIRX=Math.round(cCW*0.72);
+  cCY=Math.round(cCH*0.45);
+  const f=+document.getElementById('csl_f').value;
+  cSCALE=Math.min((cMIRX-40)/(3*f+10),14);
+}
+function cCmToX(u){ return cMIRX - u*cSCALE; }
+function cXToCm(x){ return (cMIRX-x)/cSCALE; }
+
+function drawCamRay(){
+  camRayLayout();
+  const ctx=crcCtx;
+  const f=+document.getElementById('csl_f').value;
+  const u=+document.getElementById('csl_u').value;
+  ctx.clearRect(0,0,cCW,cCH);
+  ctx.fillStyle='#080c10'; ctx.fillRect(0,0,cCW,cCH);
+
+  // axis
+  ctx.strokeStyle='#1e2830'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,cCY); ctx.lineTo(cCW,cCY); ctx.stroke();
+
+  // mirror arc
+  ctx.strokeStyle='#378ADD'; ctx.lineWidth=3;
+  ctx.beginPath();
+  const arcH=cCH*0.42;
+  for(let py=-arcH;py<=arcH;py+=1){
+    const px=cMIRX+(py*py)/(6*f*cSCALE);
+    py===-arcH?ctx.moveTo(px,cCY+py):ctx.lineTo(px,cCY+py);
+  }
+  ctx.stroke();
+  ctx.fillStyle='#378ADD'; ctx.font='11px monospace'; ctx.fillText('P',cMIRX+6,cCY-arcH+14);
+
+  // F and C
+  const Fx=cCmToX(f),Cx=cCmToX(2*f);
+  [[Fx,'F'],[Cx,'C']].forEach(([x,l])=>{
+    ctx.beginPath();ctx.arc(x,cCY,4,0,Math.PI*2);
+    ctx.fillStyle='#378ADD44';ctx.fill();
+    ctx.strokeStyle='#378ADD';ctx.lineWidth=1;ctx.stroke();
+    ctx.fillStyle='#4a6070';ctx.font='bold 11px monospace';ctx.fillText(l,x-4,cCY+18);
+  });
+
+  // tick marks
+  ctx.strokeStyle='#1e2830';ctx.lineWidth=1;
+  for(let d=5;d<=Math.ceil(cXToCm(10));d+=5){
+    const tx=cCmToX(d); if(tx<5)break;
+    ctx.beginPath();ctx.moveTo(tx,cCY-4);ctx.lineTo(tx,cCY+4);ctx.stroke();
+    ctx.fillStyle='#263040';ctx.font='9px monospace';ctx.fillText(d+'cm',tx-8,cCY+26);
+  }
+
+  const objX=cCmToX(u), objH=Math.min(60,cCH*0.28);
+
+  // object arrow
+  ctx.strokeStyle='#00e59b';ctx.lineWidth=2.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(objX,cCY);ctx.lineTo(objX,cCY-objH);ctx.stroke();
+  ctx.fillStyle='#00e59b';
+  ctx.beginPath();ctx.moveTo(objX-5,cCY-objH+8);ctx.lineTo(objX,cCY-objH);ctx.lineTo(objX+5,cCY-objH+8);ctx.fill();
+  ctx.beginPath();ctx.arc(objX,cCY-objH,8,0,Math.PI*2);
+  ctx.strokeStyle='#00e59b';ctx.lineWidth=1.5;ctx.fillStyle='rgba(0,229,155,0.15)';ctx.fill();ctx.stroke();
+  ctx.fillStyle='#00e59b';ctx.font='10px monospace';ctx.fillText('O',objX+10,cCY-objH);
+
+  const ph=mirrorCalc(f,u);
+  if(!ph){
+    ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(100,100,120,0.4)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cMIRX,cCY-objH);ctx.lineTo(cCW,cCY-objH);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#4a6070';ctx.font='11px monospace';ctx.textAlign='center';
+    ctx.fillText('image at ∞  (u = f)',cCW/2,cCY-objH-10);ctx.textAlign='left';
+    return;
+  }
+
+  const {v,m}=ph;
+  const imgX=cCmToX(v), imgH=objH*m;
+  const topY=cCY-objH, iTopY=cCY+imgH;
+
+  // Ray 1 — parallel
+  ctx.strokeStyle='#ffd166';ctx.lineWidth=1.5;ctx.setLineDash([]);
+  ctx.beginPath();ctx.moveTo(objX,topY);ctx.lineTo(cMIRX,topY);
+  if(v>0){ctx.lineTo(imgX,iTopY);}
+  else{ctx.lineTo(cMIRX+80,topY+80*(iTopY-topY)/(imgX-cMIRX));}
+  ctx.stroke();
+  if(v<0){ctx.setLineDash([5,4]);ctx.globalAlpha=0.45;ctx.beginPath();ctx.moveTo(cMIRX,topY);ctx.lineTo(imgX,iTopY);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;}
+
+  // Ray 2 — centre
+  ctx.strokeStyle='#ff6b9d';ctx.lineWidth=1.5;ctx.setLineDash([]);
+  if(v>0){
+    ctx.beginPath();ctx.moveTo(objX,topY);ctx.lineTo(Cx,cCY);ctx.lineTo(imgX,iTopY);ctx.stroke();
+  } else {
+    const t=(cMIRX-objX)/(Cx-objX);
+    const yM=topY+t*(cCY-topY);
+    ctx.beginPath();ctx.moveTo(objX,topY);ctx.lineTo(cMIRX,yM);ctx.stroke();
+    ctx.setLineDash([5,4]);ctx.globalAlpha=0.45;ctx.beginPath();ctx.moveTo(cMIRX,yM);ctx.lineTo(imgX,iTopY);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+  }
+
+  // Ray 3 — focal
+  ctx.strokeStyle='#88ddff';ctx.lineWidth=1.5;ctx.setLineDash([]);
+  {
+    const slope=(cCY-topY)/(Fx-objX);
+    const yHit=topY+slope*(cMIRX-objX);
+    if(v>0){
+      ctx.beginPath();ctx.moveTo(objX,topY);ctx.lineTo(cMIRX,yHit);ctx.lineTo(imgX,yHit);ctx.lineTo(imgX,iTopY);ctx.stroke();
+    } else {
+      ctx.beginPath();ctx.moveTo(objX,topY);ctx.lineTo(cMIRX,yHit);ctx.lineTo(cMIRX+100,yHit);ctx.stroke();
+      ctx.setLineDash([5,4]);ctx.globalAlpha=0.45;ctx.beginPath();ctx.moveTo(cMIRX,yHit);ctx.lineTo(imgX,iTopY);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+    }
+  }
+
+  // image arrow
+  const imgCol=v>0?'#ff6b35':'#ffd166';
+  ctx.strokeStyle=imgCol;ctx.lineWidth=2.5;ctx.setLineDash(v>0?[]:[6,3]);
+  ctx.beginPath();ctx.moveTo(imgX,cCY);ctx.lineTo(imgX,iTopY);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=imgCol;
+  if(iTopY<cCY){ctx.beginPath();ctx.moveTo(imgX-4,iTopY+7);ctx.lineTo(imgX,iTopY);ctx.lineTo(imgX+4,iTopY+7);ctx.fill();}
+  else{ctx.beginPath();ctx.moveTo(imgX-4,iTopY-7);ctx.lineTo(imgX,iTopY);ctx.lineTo(imgX+4,iTopY-7);ctx.fill();}
+  ctx.fillStyle=imgCol;ctx.font='10px monospace';ctx.fillText(v>0?'I (real)':'I (virtual)',imgX+6,iTopY);
+
+  // distance labels
+  if(Math.abs(imgX-cMIRX)>20){
+    ctx.strokeStyle='rgba(100,100,120,0.3)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(cMIRX,cCY+36);ctx.lineTo(imgX,cCY+36);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#4a6070';ctx.font='9px monospace';ctx.textAlign='center';
+    ctx.fillText('v='+Math.abs(v).toFixed(1)+'cm',(cMIRX+imgX)/2,cCY+30);ctx.textAlign='left';
+  }
+  ctx.strokeStyle='rgba(0,229,155,0.2)';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(objX,cCY+48);ctx.lineTo(cMIRX,cCY+48);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle='#00e59b88';ctx.font='9px monospace';ctx.textAlign='center';
+  ctx.fillText('u='+u.toFixed(1)+'cm',(objX+cMIRX)/2,cCY+44);ctx.textAlign='left';
+}
+
+// drag on cam ray
+function getCamRayX(e){
+  const rect=crc.getBoundingClientRect(),sx=crc.width/rect.width;
+  if(e.touches)return(e.touches[0].clientX-rect.left)*sx;
+  return(e.clientX-rect.left)*sx;
+}
+function nearCamObj(ex){return Math.abs(ex-cCmToX(+document.getElementById('csl_u').value))<18;}
+
+crc.addEventListener('mousedown',e=>{if(nearCamObj(getCamRayX(e))){cDragging=true;crc.style.cursor='grabbing';}});
+crc.addEventListener('touchstart',e=>{if(nearCamObj(getCamRayX(e))){cDragging=true;e.preventDefault();}},{passive:false});
+window.addEventListener('mousemove',e=>{
+  if(!cDragging)return;
+  const nu=Math.max(1,Math.min(cXToCm(getCamRayX(e)),cXToCm(10)));
+  document.getElementById('csl_u').value=Math.round(nu);
+  onCamSliders(); drawCamRay();
+});
+window.addEventListener('touchmove',e=>{
+  if(!cDragging)return;e.preventDefault();
+  const nu=Math.max(1,Math.min(cXToCm(getCamRayX(e)),cXToCm(10)));
+  document.getElementById('csl_u').value=Math.round(nu);
+  onCamSliders(); drawCamRay();
+},{passive:false});
+window.addEventListener('mouseup',()=>{cDragging=false;crc.style.cursor='grab';});
+window.addEventListener('touchend',()=>{cDragging=false;});
+crc.addEventListener('mousemove',e=>{if(!cDragging)crc.style.cursor=nearCamObj(getCamRayX(e))?'grab':'default';});
+
+// ════════════════════════════════════════════
+//  SOURCE MODE  (local cam vs remote laptop)
+// ════════════════════════════════════════════
+let sourceMode = 'local'; // 'local' | 'remote'
+let remotePeer = null, remoteStream = null;
+
+function setSource(mode){
+  sourceMode = mode;
+  document.getElementById('srcLocal').classList.toggle('active', mode==='local');
+  document.getElementById('srcRemote').classList.toggle('active', mode==='remote');
+  document.getElementById('connectPanel').classList.toggle('show', mode==='remote');
+
+  if(mode==='local'){
+    // disconnect remote if active
+    if(remotePeer){ remotePeer.destroy(); remotePeer=null; }
+    document.getElementById('camBtn').style.display='block';
+  } else {
+    // stop local cam if running
+    if(camRunning){ toggleCam(); }
+    document.getElementById('camBtn').style.display='none';
+    // check URL param for room
+    const params=new URLSearchParams(window.location.search);
+    if(params.get('room')) document.getElementById('roomInput').value=params.get('room');
+  }
+}
+
+function connectToLaptop(){
+  const roomId = document.getElementById('roomInput').value.trim();
+  if(roomId.length!==6){ setPeerStatus('Enter a valid 6-digit Room ID','err'); return; }
+
+  const connBtn=document.getElementById('connBtn');
+  if(remotePeer){ remotePeer.destroy(); remotePeer=null; remoteStream=null; }
+
+  setPeerStatus('Connecting to relay server…','');
+  connBtn.textContent='CONNECTING…'; connBtn.disabled=true;
+
+  remotePeer = new Peer({
+    host:'0.peerjs.com', port:443, path:'/', secure:true, debug:0
+  });
+
+  remotePeer.on('open', myId=>{
+    setPeerStatus('Calling laptop broadcaster…','');
+    const call = remotePeer.call('mirrorlab-'+roomId, null, {
+      // we are viewer — we don't send stream, just receive
+    });
+    // PeerJS call with no local stream: trick — send empty stream
+    navigator.mediaDevices.getUserMedia({video:false,audio:false}).catch(()=>{}).finally(()=>{
+      const emptyStream = new MediaStream();
+      const call2 = remotePeer.call('mirrorlab-'+roomId, emptyStream);
+      call2.on('stream', stream=>{
+        remoteStream=stream;
+        vid.srcObject=stream;
+        vid.play().catch(()=>{});
+        camRunning=true;
+        document.getElementById('liveDot').classList.add('on');
+        setPeerStatus('✓ LIVE — streaming from laptop webcam','live');
+        connBtn.textContent='DISCONNECT'; connBtn.disabled=false; connBtn.classList.add('disc');
+        connBtn.onclick=disconnectLaptop;
+        camTick();
+      });
+      call2.on('error', e=>{ setPeerStatus('Call error: '+e,'err'); resetConnBtn(); });
+      call2.on('close', ()=>{ setPeerStatus('Connection closed','err'); resetConnBtn(); camRunning=false; });
+    });
+  });
+
+  remotePeer.on('error', e=>{
+    setPeerStatus('Error: '+e.type+' — check Room ID and that broadcaster is running','err');
+    resetConnBtn();
+  });
+}
+
+function disconnectLaptop(){
+  if(remotePeer){ remotePeer.destroy(); remotePeer=null; }
+  remoteStream=null; camRunning=false;
+  vid.srcObject=null;
+  document.getElementById('liveDot').classList.remove('on');
+  setPeerStatus('Disconnected','');
+  resetConnBtn();
+}
+
+function setPeerStatus(msg,cls){
+  const el=document.getElementById('peerStatus');
+  el.textContent=msg; el.className='peer-status '+(cls||'');
+}
+function resetConnBtn(){
+  const b=document.getElementById('connBtn');
+  b.textContent='CONNECT'; b.disabled=false; b.classList.remove('disc'); b.onclick=connectToLaptop;
+}
+
+// ════════════════════════════════════════════
+//  WEBCAM MODE
+// ════════════════════════════════════════════
+const vid=document.getElementById('vid');
+const rawCv=document.getElementById('rawCv');
+const mirCv=document.getElementById('mirCv');
+const rCtx=rawCv.getContext('2d');
+const mCtx=mirCv.getContext('2d');
+let stream=null,animId=null,camRunning=false;
+
+// Case preset: sets f and u to canonical values for each case
+function setCamCase(i){
+  document.querySelectorAll('#camCaseBtns .case-btn').forEach((b,j)=>b.classList.toggle('sel',j===i));
+  const f = +document.getElementById('csl_f').value || 20;
+  // u values relative to current f so the case is always correct regardless of f
+  const uVals = [f*3, f*2, Math.round(f*1.5), Math.round(f*0.5)];
+  const uClamped = Math.min(Math.max(uVals[i], 1), 120);
+  document.getElementById('csl_u').value = uClamped;
+  onCamSliders();
+}
+
+function onCamSliders(){
+  const f=+document.getElementById('csl_f').value;
+  const u=+document.getElementById('csl_u').value;
+  document.getElementById('csv_f').textContent=f;
+  document.getElementById('csv_u').textContent=u;
+  document.getElementById('cpF').textContent=f;
+  const ph=mirrorCalc(f,u);
+  if(ph){
+    document.getElementById('cpU').textContent=u;
+    document.getElementById('cpV').textContent=Math.abs(ph.v).toFixed(1);
+    document.getElementById('cpM').textContent=ph.m.toFixed(3);
+    document.getElementById('camCaseLabel').textContent=ph.type+' · '+ph.nature+' · '+ph.stag;
+    document.getElementById('camExplain').innerHTML=explainText(f,u,ph);
+    // auto-highlight correct case button
+    const twoF=f*2;
+    let ci = u>twoF?0 : Math.abs(u-twoF)<1?1 : u>f?2 : 3;
+    document.querySelectorAll('#camCaseBtns .case-btn').forEach((b,j)=>b.classList.toggle('sel',j===ci));
+  }
+  drawCamRay();
+}
+
+function flipH(src,dst,W,H){
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const si=(y*W+(W-1-x))*4,di=(y*W+x)*4;
+    dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=src[si+3];
+  }
+}
+function flipBoth(src,dst,W,H){
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++){
+    const si=((H-1-y)*W+(W-1-x))*4,di=(y*W+x)*4;
+    dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=src[si+3];
+  }
+}
+
+const offCv=document.createElement('canvas');
+const offCtx=offCv.getContext('2d');
+const capCv=document.createElement('canvas');
+const capCtx=capCv.getContext('2d');
+
+function camTick(){
+  if(!camRunning)return;
+  const W=320,H=240;
+  rawCv.width=W;rawCv.height=H;mirCv.width=W;mirCv.height=H;
+  capCv.width=W;capCv.height=H;
+  capCtx.drawImage(vid,0,0,W,H);
+  const raw=capCtx.getImageData(0,0,W,H);
+  const corr=new ImageData(W,H);
+  flipH(raw.data,corr.data,W,H);
+  rCtx.putImageData(corr,0,0);
+
+  const f=+document.getElementById('csl_f').value;
+  const u=+document.getElementById('csl_u').value;
+  const ph=mirrorCalc(f,u);
+
+  mCtx.fillStyle='#000';mCtx.fillRect(0,0,W,H);
+
+  if(!ph){
+    mCtx.fillStyle='#1e2830';mCtx.font='11px monospace';mCtx.textAlign='center';
+    mCtx.fillText('u = f  →  image at ∞',W/2,H/2);mCtx.textAlign='left';
+    animId=requestAnimationFrame(camTick);return;
+  }
+
+  const absM=Math.min(Math.abs(ph.m),5);
+  const sW=Math.round(W*absM),sH=Math.round(H*absM);
+  const flipped=new ImageData(W,H);
+  if(ph.m<0) flipBoth(corr.data,flipped.data,W,H);
+  else       flipped.data.set(corr.data);
+  offCv.width=W;offCv.height=H;offCtx.putImageData(flipped,0,0);
+  const dx=(W-sW)/2,dy=(H-sH)/2;
+  mCtx.drawImage(offCv,0,0,W,H,dx,dy,sW,sH);
+  mCtx.strokeStyle=ph.m<0?'rgba(255,107,53,.5)':'rgba(255,209,102,.5)';mCtx.lineWidth=1;
+  mCtx.strokeRect(Math.max(0,dx),Math.max(0,dy),Math.min(sW,W-Math.max(0,dx)),Math.min(sH,H-Math.max(0,dy)));
+  mCtx.fillStyle=ph.m<0?'rgba(255,107,53,.9)':'rgba(255,209,102,.9)';
+  mCtx.font='10px monospace';
+  mCtx.fillText(`u=${u} v=${Math.abs(ph.v).toFixed(1)} m=${ph.m.toFixed(3)} f=${f}`,5,H-7);
+
+  animId=requestAnimationFrame(camTick);
+}
+
+async function toggleCam(){
+  const btn=document.getElementById('camBtn');
+  if(camRunning){
+    camRunning=false;cancelAnimationFrame(animId);
+    stream?.getTracks().forEach(t=>t.stop());
+    btn.textContent='START CAMERA';btn.classList.remove('stop');
+    document.getElementById('liveDot').classList.remove('on');
+    document.getElementById('camStatus').textContent='Camera stopped.';
+    return;
+  }
+  try{
+    document.getElementById('camStatus').textContent='Requesting camera…';
+    stream=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480,facingMode:'user'}});
+    vid.srcObject=stream;
+    await new Promise(r=>vid.onloadedmetadata=r);
+    await vid.play();
+    camRunning=true;
+    btn.textContent='STOP CAMERA';btn.classList.add('stop');
+    document.getElementById('liveDot').classList.add('on');
+    document.getElementById('camStatus').textContent='Live — adjust f and u sliders to change mirror case.';
+    camTick();
+  }catch(e){
+    document.getElementById('camStatus').textContent='Camera error: '+e.message;
+  }
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+onCamSliders();
+renderCases();
+drawRay();
+drawCamRay();
+window.addEventListener('resize',()=>{drawRay();drawCamRay();renderCases();});
+</script>
+</body>
+</html>
